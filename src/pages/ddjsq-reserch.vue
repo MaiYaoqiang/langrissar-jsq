@@ -1,9 +1,6 @@
 <template>
   <div flex="box:mean" style="width:1000px;">
     <el-form v-for="(item,index) in formList" :key="index" :size="'small'" :model="item" label-width="150px">
-      <el-form-item label="id">
-        <el-input v-model="item.id"></el-input>
-      </el-form-item>
       <el-form-item label="英雄名称">
         <el-input v-model="item.name"></el-input>
       </el-form-item>
@@ -67,6 +64,9 @@
       <el-form-item label="打英雄伤害">
         <el-input-number v-model="item.dyx_sh"></el-input-number>
       </el-form-item>
+      <el-form-item label="打小兵伤害">
+        <el-input-number v-model="item.dsb_sh"></el-input-number>
+      </el-form-item>
 
 
     </el-form>
@@ -82,12 +82,10 @@ import {reactive} from 'vue'
 import {Hero} from './ddjsq-reserch/utils'
 // 海德拉水兽
 const heroAttributes = reactive({
-  id: "1",
   name: "冲1",
   health: 14968,
   position: 0,
   speed: 400,// 移动速度 单位长度/ms 假设走完全程需要1200ms
-
   attackDistance: 50, // 攻击距离  全程1200
   maxHits: 20, // 最多命中(每次攻击打出伤害段数)
   attackCount: 1, // 攻击次数
@@ -99,50 +97,13 @@ const heroAttributes = reactive({
   attackAgainWait: 0, // 再次攻击等待时间
   tailTime: 1300, // 收尾时间
   prepareSpecial: 0,  // 准备特效
-  dyx_sh: 1080,
   attackDirection: 1,
+  dyx_sh: 1080,
+  dsb_sh: 888,
+  type: Hero.Type.HERO,
 });
-/*const enemyAttributes = {
-    name: "贝希摩斯",
-    health: 1000,
-    position: 0,
-    speed: 400,// 移动速度 单位 m/ms 假设全程需要1200ms  则总路程 1200*400 = 480000m
 
-    attackDistance: 30, // 攻击距离
-    maxHits: 20, // 最多命中(每次攻击打出伤害段数)
-    attackCount: 1, // 攻击次数
-    chantTime: 0, // 咏唱时间
-    moveDelay: 600, // 移动延迟
-    castTime: 0, // 施放时间
-    attackedTime: 50, // 击中时间
-    rangeHitTime: 40, // 范围击中时间（多段伤害每段间隔）
-    attackAgainWait: 0, // 再次攻击等待时间
-    tailTime: 666, // 收尾时间
-    prepareSpecial: 0,  // 准备特效
-};*/
-/*const enemyAttributes = reactive({
-  id: "2",
-  name: "小白毛",
-  health: 14118,
-  position: 1200,
-  speed: 400,// 移动速度 单位 m/ms 假设全程需要1200ms  则总路程 1200*400 = 480000m
-
-  attackDistance: 50, // 攻击距离
-  maxHits: 20, // 最多命中(每次攻击打出伤害段数)
-  attackCount: 1, // 攻击次数
-  chantTime: 0, // 咏唱时间
-  moveDelay: 0, // 移动延迟
-  castTime: 300, // 施放时间
-  attackedTime: 0, // 击中时间
-  rangeHitTime: 30, // 范围击中时间（多段伤害每段间隔）
-  attackAgainWait: 0, // 再次攻击等待时间
-  tailTime: 1300, // 收尾时间
-  prepareSpecial: 0,  // 准备特效
-  dyx_sh: 991,
-  attackDirection: -1
-});*/
 const enemyAttributes = reactive({
-  id: "2",
   name: "冲2",
   health: 14118,
   position: 1200,
@@ -159,13 +120,12 @@ const enemyAttributes = reactive({
   attackAgainWait: 0, // 再次攻击等待时间
   tailTime: 1300, // 收尾时间
   prepareSpecial: 0,  // 准备特效
+  attackDirection: -1,
   dyx_sh: 991,
-  attackDirection: -1
+  dsb_sh: 666,
 });
 
 //决赛圈案例1  女王出手了
-heroAttributes.health = 14968
-enemyAttributes.dyx_sh = 991
 
 // //案例2自由梦  女王没出手
 // heroAttributes.health = 13457
@@ -190,6 +150,94 @@ const formList = [
 ]
 
 
+const gfyxAttr = reactive({
+  name: "攻方英雄",
+  health: 14968,
+  position: 0,
+  speed: 400,// 移动速度 单位长度/ms 假设走完全程需要1200ms
+  attackDistance: 50, // 攻击距离  全程1200
+  maxHits: 20, // 最多命中(每次攻击打出伤害段数)
+  attackCount: 1, // 攻击次数
+  chantTime: 0, // 咏唱时间
+  moveDelay: 600, // 移动延迟
+  castTime: 400, // 施放时间
+  attackedTime: 300, // 击中时间
+  rangeHitTime: 35, // 范围击中时间（多段伤害每段间隔）
+  attackAgainWait: 0, // 再次攻击等待时间
+  tailTime: 1300, // 收尾时间
+  prepareSpecial: 0,  // 准备特效
+  attackDirection: 1,
+  dyx_sh: 1080,
+  dsb_sh: 888,
+  type: Hero.Type.HERO,
+});
+const gfsbAttr = reactive({
+  name: "攻方士兵",
+  health: 14968,
+  position: 0,
+  speed: 400,// 移动速度 单位长度/ms 假设走完全程需要1200ms
+  attackDistance: 50, // 攻击距离  全程1200
+  maxHits: 20, // 最多命中(每次攻击打出伤害段数)
+  attackCount: 1, // 攻击次数
+  chantTime: 0, // 咏唱时间
+  moveDelay: 600, // 移动延迟
+  castTime: 400, // 施放时间
+  attackedTime: 300, // 击中时间
+  rangeHitTime: 35, // 范围击中时间（多段伤害每段间隔）
+  attackAgainWait: 0, // 再次攻击等待时间
+  tailTime: 1300, // 收尾时间
+  prepareSpecial: 0,  // 准备特效
+  attackDirection: 1,
+  dyx_sh: 1080,
+  dsb_sh: 888,
+  type: Hero.Type.SOLDIER,
+});
+
+const sfyxAttr = reactive({
+  name: "守方英雄",
+  health: 14118,
+  position: 1200,
+  speed: 400,// 移动速度 单位 m/ms 假设全程需要1200ms  则总路程 1200*400 = 480000m
+
+  attackDistance: 50, // 攻击距离
+  maxHits: 20, // 最多命中(每次攻击打出伤害段数)
+  attackCount: 1, // 攻击次数
+  chantTime: 0, // 咏唱时间
+  moveDelay: 0, // 移动延迟
+  castTime: 300, // 施放时间
+  attackedTime: 0, // 击中时间
+  rangeHitTime: 30, // 范围击中时间（多段伤害每段间隔）
+  attackAgainWait: 0, // 再次攻击等待时间
+  tailTime: 1300, // 收尾时间
+  prepareSpecial: 0,  // 准备特效
+  attackDirection: -1,
+  dyx_sh: 991,
+  dsb_sh: 666,
+  type: Hero.Type.HERO,
+});
+const sfsbAttr = reactive({
+  name: "守方士兵",
+  health: 14118,
+  position: 1200,
+  speed: 400,// 移动速度 单位 m/ms 假设全程需要1200ms  则总路程 1200*400 = 480000m
+
+  attackDistance: 50, // 攻击距离
+  maxHits: 20, // 最多命中(每次攻击打出伤害段数)
+  attackCount: 1, // 攻击次数
+  chantTime: 0, // 咏唱时间
+  moveDelay: 0, // 移动延迟
+  castTime: 300, // 施放时间
+  attackedTime: 0, // 击中时间
+  rangeHitTime: 30, // 范围击中时间（多段伤害每段间隔）
+  attackAgainWait: 0, // 再次攻击等待时间
+  tailTime: 1300, // 收尾时间
+  prepareSpecial: 0,  // 准备特效
+  attackDirection: -1,
+  dyx_sh: 991,
+  dsb_sh: 666,
+  type: Hero.Type.SOLDIER,
+});
+
 let animationId;
 let globalTime = 0;
 
@@ -203,64 +251,21 @@ const start = () => {
 
   animationId && cancelAnimationFrame(animationId); // 清理之前的动画帧
 
-  const hydra = new Hero({
-    ...heroAttributes,
-    name: "冲1",
-  });
-  const hydra2 = new Hero({
-    ...heroAttributes,
-    name: "冲2"
-  });
-  const enemy = new Hero({
-    ...enemyAttributes,
-    name: "敌人1"
-  });
-  const enemy2 = new Hero({
-    ...enemyAttributes,
-    name: "敌人2"
-  });
-
-  hydra.setTargets([
-    {
-      target: enemy,
-      damageValue: heroAttributes.dyx_sh
-    },
-    {
-      target: enemy2,
-      damageValue: heroAttributes.dyx_sh
-    },
-  ])
-  hydra2.setTargets([
-    {
-      target: enemy,
-      damageValue: heroAttributes.dyx_sh
-    },
-    {
-      target: enemy2,
-      damageValue: heroAttributes.dyx_sh
-    },
-  ])
-  enemy.setTargets([
-    {
-      target: hydra,
-      damageValue: enemyAttributes.dyx_sh
-    },
-    {
-      target: hydra2,
-      damageValue: enemyAttributes.dyx_sh
-    },
-  ])
-  enemy2.setTargets([
-    {
-      target: hydra,
-      damageValue: enemyAttributes.dyx_sh
-    },
-    {
-      target: hydra2,
-      damageValue: enemyAttributes.dyx_sh
-    },
-  ])
-
+  const gf = [
+    ...Array.from({length:10}).map(i => new Hero(gfsbAttr)),
+    new Hero(gfyxAttr)
+  ]
+  const sf = [
+    ...Array.from({length:10}).map(i => new Hero(sfsbAttr)),
+    new Hero(sfyxAttr)
+  ]
+  gf.map((i)=>{
+    i.setTargets(sf)
+  })
+  sf.map((i)=>{
+    i.setTargets(gf)
+  })
+  const heroList = [...gf,...sf]
 
   console.log("战斗开始");
 
@@ -272,11 +277,9 @@ const start = () => {
     globalTime = parseFloat((deltaTime + globalTime).toFixed());
     lastTime = timestamp; // 更新上一帧时间戳
 
-    // 更新角色状态
-    hydra.update(globalTime);
-    hydra2.update(globalTime);
-    enemy.update(globalTime);
-    enemy2.update(globalTime);
+    heroList.forEach((i)=>{
+      i.update(globalTime)
+    })
 
     // 检查游戏是否需要强制结束
     if (globalTime > 4000) {
@@ -285,12 +288,9 @@ const start = () => {
     }
 
     // 检查是否需要停止更新
-    if (!hydra.isNeedUpdate() && !enemy.isNeedUpdate()) {
+    if (!heroList.some((i)=>i.isNeedUpdate())) {
       console.log("战斗结束: " + globalTime + "ms");
-      console.log(hydra);
-      console.log(hydra2);
-      console.log(enemy);
-      console.log(enemy2);
+      console.log(heroList)
       handleGameOver();
       return;
     }

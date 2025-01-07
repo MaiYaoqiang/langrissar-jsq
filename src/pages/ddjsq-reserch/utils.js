@@ -28,10 +28,9 @@ class BaseEntity {
 }
 
 class Attack extends BaseEntity {
-    constructor({targets, maxHits, hitInterval, initialTime, damageMap, position, attackSpeed, attacker}) {
+    constructor({targets, maxHits, hitInterval, initialTime, position, attackSpeed, attacker}) {
         super();
         this.targets = targets; // 目标数组
-        this.damageMap = damageMap; // 目标与伤害值的映射
         this.maxHits = maxHits;
         this.hitInterval = hitInterval;
         this.position = position;
@@ -51,14 +50,12 @@ class Attack extends BaseEntity {
                 this.lockedTarget = this.findClosestTarget();
             }
 
-            const damage = this.damageMap.get(this.lockedTarget) || 0;
+            const damage = this.attacker.damageMap.get(this.lockedTarget.type) || 0;
             this.lockedTarget.health -= damage;
             this.hitsDone++;
             this.nextHitTime += this.hitInterval;
 
-            if(this.attacker.name.indexOf('冲')>-1){
-                console.log(`${this.attacker.name} 对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health} at 时间: ${globalTime}ms`);
-            }
+            console.log(`${this.attacker.name} 对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health} at 时间: ${globalTime}ms`);
 
 
             if (this.lockedTarget.health <= 0) {
@@ -84,11 +81,14 @@ export class Hero extends BaseEntity {
         "发出攻击",
         "收尾结束",
     ];
+    static Type ={
+        HERO: 1,
+        SOLDIER: 2,
+    }
 
     constructor(options) {
         super();
         const {
-            id,
             name,
             health,
             position,
@@ -105,10 +105,12 @@ export class Hero extends BaseEntity {
             attackAgainWait,
             prepareSpecial,
             attackDirection, // 新增攻击方向字段
+            type,
+            dyx_sh,
+            dsb_sh,
         } = options || {};
 
         Object.assign(this, {
-            id,
             name,
             health,
             position,
@@ -124,6 +126,9 @@ export class Hero extends BaseEntity {
             attackAgainWait,
             prepareSpecial,
             attackDirection: attackDirection || 1, // 默认从左往右
+            type,
+            dyx_sh,
+            dsb_sh,
         });
 
         this.speed = this._fixSpeed(speed);
@@ -137,6 +142,8 @@ export class Hero extends BaseEntity {
         this.damageMap = new Map(); // 保存目标和对应的伤害值
         this.moveEnd = null; // 记录实际移动时间
         this.preMoveTime = null;
+        this.damageMap.set(Hero.Type.HERO,dyx_sh)
+        this.damageMap.set(Hero.Type.SOLDIER,dsb_sh)
     }
 
     trackEvent(event) {
@@ -144,18 +151,9 @@ export class Hero extends BaseEntity {
         this.eventList.push(event);
     }
 
-    setTargets(targetDataArray) {
-        this.targets = [];
-        this.damageMap.clear();
-
-        targetDataArray.forEach(({target, damageValue}) => {
-            if (target) {
-                this.targets.push(target);
-                this.damageMap.set(target, damageValue || 0);
-            }
-        });
+    setTargets(targets) {
+        this.targets = targets
     }
-
     moveTowardsTarget(target) {
         const targetPosition = target.position;
         const moveTime = this.globalTime - (this.preMoveTime || 0);
@@ -234,7 +232,6 @@ export class Hero extends BaseEntity {
                     maxHits: this.maxHits,
                     hitInterval: this.rangeHitTime || 0,
                     initialTime: globalTime,
-                    damageMap: this.damageMap,
                     position: this.position,
                     attackSpeed: this.attackSpeed,
                     attacker: this,
