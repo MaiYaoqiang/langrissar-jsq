@@ -203,12 +203,40 @@ const start = () => {
 
   animationId && cancelAnimationFrame(animationId); // 清理之前的动画帧
 
-  const hydra = new Hero(heroAttributes);
-  const enemy = new Hero(enemyAttributes);
+  const hydra = new Hero({
+    ...heroAttributes,
+    name: "冲1",
+  });
+  const hydra2 = new Hero({
+    ...heroAttributes,
+    name: "冲2"
+  });
+  const enemy = new Hero({
+    ...enemyAttributes,
+    name: "敌人1"
+  });
+  const enemy2 = new Hero({
+    ...enemyAttributes,
+    name: "敌人2"
+  });
 
   hydra.setTargets([
     {
       target: enemy,
+      damageValue: heroAttributes.dyx_sh
+    },
+    {
+      target: enemy2,
+      damageValue: heroAttributes.dyx_sh
+    },
+  ])
+  hydra2.setTargets([
+    {
+      target: enemy,
+      damageValue: heroAttributes.dyx_sh
+    },
+    {
+      target: enemy2,
       damageValue: heroAttributes.dyx_sh
     },
   ])
@@ -216,8 +244,23 @@ const start = () => {
     {
       target: hydra,
       damageValue: enemyAttributes.dyx_sh
-    }
+    },
+    {
+      target: hydra2,
+      damageValue: enemyAttributes.dyx_sh
+    },
   ])
+  enemy2.setTargets([
+    {
+      target: hydra,
+      damageValue: enemyAttributes.dyx_sh
+    },
+    {
+      target: hydra2,
+      damageValue: enemyAttributes.dyx_sh
+    },
+  ])
+
 
   console.log("战斗开始");
 
@@ -230,8 +273,10 @@ const start = () => {
     lastTime = timestamp; // 更新上一帧时间戳
 
     // 更新角色状态
-    hydra.update(globalTime, enemy);
-    enemy.update(globalTime, hydra);
+    hydra.update(globalTime);
+    hydra2.update(globalTime);
+    enemy.update(globalTime);
+    enemy2.update(globalTime);
 
     // 检查游戏是否需要强制结束
     if (globalTime > 4000) {
@@ -243,7 +288,9 @@ const start = () => {
     if (!hydra.isNeedUpdate() && !enemy.isNeedUpdate()) {
       console.log("战斗结束: " + globalTime + "ms");
       console.log(hydra);
+      console.log(hydra2);
       console.log(enemy);
+      console.log(enemy2);
       handleGameOver();
       return;
     }

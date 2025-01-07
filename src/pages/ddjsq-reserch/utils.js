@@ -21,26 +21,25 @@ class BaseEntity {
             }
         }
         // 如果没有可攻击目标(可能全都死亡) 需要进行鞭尸 暂时先拿第一个目标 后面会改成拿英雄
-        if (!closestTarget) closestTarget = this.targets[0];
+        if (!closestTarget) closestTarget = this.targets[this.targets.length-1];
 
         return closestTarget;
     }
 }
 
 class Attack extends BaseEntity {
-    constructor({targets, maxHits, hitInterval, initialTime, damageMap, position, attackSpeed}) {
+    constructor({targets, maxHits, hitInterval, initialTime, damageMap, position, attackSpeed, attacker}) {
         super();
         this.targets = targets; // 目标数组
         this.damageMap = damageMap; // 目标与伤害值的映射
         this.maxHits = maxHits;
         this.hitInterval = hitInterval;
-        this.initialTime = initialTime;
         this.position = position;
         this.attackSpeed = attackSpeed;
         this.nextHitTime = initialTime;
         this.hitsDone = 0;
-        this.currentPosition = position;
         this.lockedTarget = null; // 锁定的攻击目标
+        this.attacker = attacker
     }
 
     update(globalTime) {
@@ -57,7 +56,10 @@ class Attack extends BaseEntity {
             this.hitsDone++;
             this.nextHitTime += this.hitInterval;
 
-            console.log(`对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health} at 时间: ${globalTime}ms`);
+            if(this.attacker.name.indexOf('冲')>-1){
+                console.log(`${this.attacker.name} 对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health} at 时间: ${globalTime}ms`);
+            }
+
 
             if (this.lockedTarget.health <= 0) {
                 this.lockedTarget.isDead = true;
@@ -235,6 +237,7 @@ export class Hero extends BaseEntity {
                     damageMap: this.damageMap,
                     position: this.position,
                     attackSpeed: this.attackSpeed,
+                    attacker: this,
                 });
                 this.pendingAttacks.push(newAttack);
             }
