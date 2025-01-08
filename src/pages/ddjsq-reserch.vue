@@ -79,7 +79,7 @@
 
 <script setup>
 import {reactive} from 'vue'
-import {Hero} from './ddjsq-reserch/utils'
+import {Hero,BattleLogger} from './ddjsq-reserch/utils'
 // 海德拉水兽
 const heroAttributes = reactive({
   name: "冲1",
@@ -247,16 +247,24 @@ const handleGameOver = () => {
 
 const start = () => {
   globalTime = 0;
-  let lastTime = null; // 上一次帧的时间戳
+  let lastTime = null;
 
-  animationId && cancelAnimationFrame(animationId); // 清理之前的动画帧
+  animationId && cancelAnimationFrame(animationId);
 
   const gf = [
-    ...Array.from({length:10}).map(i => new Hero(gfsbAttr)),
+    ...Array.from({length:10}).map((_, index) => {
+      const attr = {...gfsbAttr};
+      attr.name = `攻方士兵${index + 1}`;
+      return new Hero(attr);
+    }),
     new Hero(gfyxAttr)
   ]
   const sf = [
-    ...Array.from({length:10}).map(i => new Hero(sfsbAttr)),
+    ...Array.from({length:10}).map((_, index) => {
+      const attr = {...sfsbAttr};
+      attr.name = `守方士兵${index + 1}`;
+      return new Hero(attr);
+    }),
     new Hero(sfyxAttr)
   ]
   gf.map((i)=>{
@@ -290,7 +298,24 @@ const start = () => {
     // 检查是否需要停止更新
     if (!heroList.some((i)=>i.isNeedUpdate())) {
       console.log("战斗结束: " + globalTime + "ms");
-      console.log(heroList)
+      
+      const logger = BattleLogger.getInstance();
+      
+      // 打印战斗统计结果
+      logger.printBattleResult({
+          name: '攻方士兵1',
+          timeRange: [0, 2000],
+          includeTypes: ['stage','attack', 'kill']
+      });
+      
+      // 打印过滤后的原始日志
+      logger.printFilteredLogs({
+          name: '攻方士兵1',
+          timeRange: [0, 2000],
+          includeTypes: ['stage','attack', 'kill']
+      });
+      
+      console.log(heroList);
       handleGameOver();
       return;
     }

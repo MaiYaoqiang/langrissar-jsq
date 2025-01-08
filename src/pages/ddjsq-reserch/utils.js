@@ -2,6 +2,15 @@ import Big from 'big.js';
 
 class BaseEntity {
     constructor() {
+        this.logger = BattleLogger.getInstance();
+    }
+
+    log(message, type = 'info') {
+        this.logger.log(message, {
+            heroId: this.name || 'unknown',
+            type,
+            time: this.globalTime
+        });
     }
 
     findClosestTarget() {
@@ -38,15 +47,16 @@ class Attack extends BaseEntity {
         this.nextHitTime = initialTime;
         this.hitsDone = 0;
         this.lockedTarget = null; // 锁定的攻击目标
-        this.attacker = attacker
+        this.attacker = attacker;
+        this.name = `${attacker.name}-攻击`; // 添加name属性
     }
 
     update(globalTime) {
+        this.globalTime = globalTime; // 为了让 log 方法能获取到时间
         this.lockedTarget = this.findClosestTarget();
 
         while (globalTime >= this.nextHitTime && this.hitsDone < this.maxHits) {
             if (!this.lockedTarget || this.lockedTarget.isDead) {
-                // 如果目标不存在或已死亡，寻找下一个攻击对象
                 this.lockedTarget = this.findClosestTarget();
             }
 
@@ -55,12 +65,17 @@ class Attack extends BaseEntity {
             this.hitsDone++;
             this.nextHitTime += this.hitInterval;
 
-            console.log(`${this.attacker.name} 对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health} at 时间: ${globalTime}ms`);
-
+            this.log(
+                `对 ${this.lockedTarget.name} 造成第【${this.hitsDone}】次伤害（${damage}），剩余生命值: ${this.lockedTarget.health}`,
+                'attack'
+            );
 
             if (this.lockedTarget.health <= 0) {
                 this.lockedTarget.isDead = true;
-                console.log(`${this.lockedTarget.name} 已阵亡 at 时间: ${globalTime}ms`);
+                this.log(
+                    `${this.lockedTarget.name} 已阵亡`,
+                    'kill'
+                );
                 break;
             }
         }
@@ -69,6 +84,205 @@ class Attack extends BaseEntity {
     }
 }
 
+// 添加日志管理类
+export class BattleLogger {
+    static instance = null;
+    
+    constructor() {
+        this.logs = new Map(); // 用Map存储不同英雄的日志
+        this.globalLogs = []; // 存储全局日志
+        this.isEnabled = true;
+    }
+
+    static getInstance() {
+        if (!BattleLogger.instance) {
+            BattleLogger.instance = new BattleLogger();
+        }
+        return BattleLogger.instance;
+    }
+
+    log(message, options = {}) {
+        const { 
+            heroId = 'global',
+            type = 'info',
+            time = 0
+        } = options;
+
+        const logEntry = {
+            time,
+            type,
+            message,
+            timestamp: Date.now()
+        };
+
+        // 保存到对应英雄的日志列表
+        if (!this.logs.has(heroId)) {
+            this.logs.set(heroId, []);
+        }
+        this.logs.get(heroId).push(logEntry);
+
+        // 同时保存到全局日志
+        this.globalLogs.push({
+            ...logEntry,
+            heroId
+        });
+
+        if (this.isEnabled) {
+            const timeStr = time ? ` at 时间: ${time}ms` : '';
+            const prefix = heroId === 'global' ? '' : `[${heroId}] `;
+            console.log(`${prefix}${message}${timeStr}`);
+        }
+    }
+
+    getHeroLogs(heroId) {
+        return this.logs.get(heroId) || [];
+    }
+
+    getAllLogs() {
+        return this.globalLogs;
+    }
+
+    clearLogs() {
+        this.logs.clear();
+        this.globalLogs = [];
+    }
+
+    setEnabled(enabled) {
+        this.isEnabled = enabled;
+    }
+
+    _filterLogs(logs, filters = {}) {
+        const {
+            name, // 按名称筛选，支持精确匹配
+            timeRange = [], // 时间范围：[startTime, endTime]
+            excludeTypes = [], // 要排除的日志类型
+            includeTypes = [], // 只包含的日志类型
+        } = filters;
+
+        return logs.filter(log => {
+            // 名称筛选（精确匹配）
+            if (name) {
+                // 处理攻击者的日志
+                if (log.heroId === name) {
+                    // 直接匹配成功
+                } else if (log.heroId === `${name}-攻击`) {
+                    // 匹配攻击日志
+                } else {
+                    return false;
+                }
+            }
+
+            // 时间范围筛选
+            if (timeRange.length === 2) {
+                const [start, end] = timeRange;
+                if (log.time < start || log.time > end) return false;
+            }
+
+            // 日志类型排除
+            if (excludeTypes.length > 0) {
+                if (excludeTypes.includes(log.type)) return false;
+            }
+
+            // 日志类型包含
+            if (includeTypes.length > 0) {
+                if (!includeTypes.includes(log.type)) return false;
+            }
+
+            return true;
+        });
+    }
+
+    printBattleResult(filters = {}) {
+        console.log('\n========== 战斗结果 ==========');
+        
+        // 按时间排序所有日志
+        let sortedLogs = [...this.globalLogs].sort((a, b) => a.time - b.time);
+        
+        // 应用过滤条件
+        sortedLogs = this._filterLogs(sortedLogs, filters);
+
+        // 统计击杀信息
+        const kills = sortedLogs.filter(log => log.type === 'kill');
+        if (kills.length > 0) {
+            console.log('\n【击杀记录】');
+            kills.forEach(kill => {
+                console.log(`[${kill.time}ms] ${kill.heroId}: ${kill.message}`);
+            });
+        }
+
+        // 统计伤害信息
+        const damages = new Map();
+        sortedLogs.filter(log => log.type === 'attack').forEach(attack => {
+            const attacker = attack.heroId;
+            if (!damages.has(attacker)) {
+                damages.set(attacker, {
+                    totalDamage: 0,
+                    hitCount: 0,
+                    targets: new Map() // 新增：记录对每个目标的伤害
+                });
+            }
+            const damageMatch = attack.message.match(/对\s+(.+?)\s+造成第.+?伤害（(\d+)）/);
+            if (damageMatch) {
+                const [, targetName, damageStr] = damageMatch;
+                const damage = parseInt(damageStr);
+                const stats = damages.get(attacker);
+                
+                // 更新总伤害统计
+                stats.totalDamage += damage;
+                stats.hitCount++;
+
+                // 更新对特定目标的伤害统计
+                if (!stats.targets.has(targetName)) {
+                    stats.targets.set(targetName, {
+                        damage: 0,
+                        hits: 0
+                    });
+                }
+                const targetStats = stats.targets.get(targetName);
+                targetStats.damage += damage;
+                targetStats.hits++;
+            }
+        });
+
+        if (damages.size > 0) {
+            console.log('\n【伤害统计】');
+            damages.forEach((stats, attacker) => {
+                console.log(`${attacker}:`);
+                console.log(`  总伤害: ${stats.totalDamage}`);
+                console.log(`  命中次数: ${stats.hitCount}`);
+                console.log(`  平均伤害: ${(stats.totalDamage / stats.hitCount).toFixed(1)}`);
+                
+                // 打印对各个目标的伤害分布
+                console.log('  目标伤害分布:');
+                stats.targets.forEach((targetStats, targetName) => {
+                    console.log(`    ${targetName}: ${targetStats.damage} (${targetStats.hits}次)`);
+                });
+                console.log('');
+            });
+        }
+
+        console.log('\n============================');
+    }
+
+    printFilteredLogs(filters = {}) {
+        console.log('\n========== 过滤后的事件记录 ==========');
+        
+        // 按时间排序所有日志
+        let sortedLogs = [...this.globalLogs].sort((a, b) => a.time - b.time);
+        
+        // 应用过滤条件
+        sortedLogs = this._filterLogs(sortedLogs, filters);
+
+        // 打印过滤后的日志
+        sortedLogs.forEach(log => {
+            const timeStr = log.time ? `[${log.time}ms]` : '';
+            const typeStr = `[${log.type}]`;
+            console.log(`${timeStr} ${typeStr} [${log.heroId}] ${log.message}`);
+        });
+
+        console.log('\n============================');
+    }
+}
 
 export class Hero extends BaseEntity {
     static totalDistance = 1200;
@@ -147,7 +361,7 @@ export class Hero extends BaseEntity {
     }
 
     trackEvent(event) {
-        console.log(event);
+        this.log(event);
         this.eventList.push(event);
     }
 
@@ -255,7 +469,7 @@ export class Hero extends BaseEntity {
 
     setNewStage(newStage) {
         this.currentAttackStage = newStage;
-        this.trackEvent(`${this.name} 当前阶段: ${this.currentAttackStage} at 时间: ${this.globalTime}ms`);
+        this.log(`当前阶段: ${this.currentAttackStage}`, 'stage');
     }
 
     checkAndSetNewStage(newStage, {preCallback, force = false} = {}) {
