@@ -79,7 +79,7 @@
 
 <script setup>
 import {reactive} from 'vue'
-import {Hero,BattleLogger} from './ddjsq-reserch/utils'
+import {Hero,BattleLogger,Game} from './ddjsq-reserch/utils'
 // 海德拉水兽
 const heroAttributes = reactive({
   name: "冲1",
@@ -238,93 +238,36 @@ const sfsbAttr = reactive({
   type: Hero.Type.SOLDIER,
 });
 
-let animationId;
-let globalTime = 0;
+// 创建游戏实例
+const game = new Game({
+    realTime: false, // 使用快速模式
+    interval: 16, // 每16ms更新一次
+    maxTime: 4000,
+    onGameOver: () => {
+        console.log('游戏结束');
+    }
+});
 
-const handleGameOver = () => {
-  cancelAnimationFrame(animationId);
-};
-
+// 修改开始函数
 const start = () => {
-  globalTime = 0;
-  let lastTime = null;
-
-  animationId && cancelAnimationFrame(animationId);
-
-  const gf = [
-    ...Array.from({length:10}).map((_, index) => {
-      const attr = {...gfsbAttr};
-      attr.name = `攻方士兵${index + 1}`;
-      return new Hero(attr);
-    }),
-    new Hero(gfyxAttr)
-  ]
-  const sf = [
-    ...Array.from({length:10}).map((_, index) => {
-      const attr = {...sfsbAttr};
-      attr.name = `守方士兵${index + 1}`;
-      return new Hero(attr);
-    }),
-    new Hero(sfyxAttr)
-  ]
-  gf.map((i)=>{
-    i.setTargets(sf)
-  })
-  sf.map((i)=>{
-    i.setTargets(gf)
-  })
-  const heroList = [...gf,...sf]
-
-  console.log("战斗开始");
-
-  const gameLoop = (timestamp) => {
-    if (lastTime === null) lastTime = timestamp; // 初始化上一帧时间戳
-
-    // 计算时间差
-    const deltaTime = timestamp - lastTime;
-    globalTime = parseFloat((deltaTime + globalTime).toFixed());
-    lastTime = timestamp; // 更新上一帧时间戳
-
-    heroList.forEach((i)=>{
-      i.update(globalTime)
-    })
-
-    // 检查游戏是否需要强制结束
-    if (globalTime > 4000) {
-      handleGameOver();
-      throw new Error("游戏时长不可能超过50秒，直接结束");
-    }
-
-    // 检查是否需要停止更新
-    if (!heroList.some((i)=>i.isNeedUpdate())) {
-      console.log("战斗结束: " + globalTime + "ms");
-      
-      const logger = BattleLogger.getInstance();
-      
-      // 打印战斗统计结果
-      logger.printBattleResult({
-          name: '攻方士兵1',
-          timeRange: [0, 2000],
-          includeTypes: ['stage','attack', 'kill']
-      });
-      
-      // 打印过滤后的原始日志
-      logger.printFilteredLogs({
-          name: '攻方士兵1',
-          timeRange: [0, 2000],
-          includeTypes: ['stage','attack', 'kill']
-      });
-      
-      console.log(heroList);
-      handleGameOver();
-      return;
-    }
-
-    // 请求下一帧
-    animationId = requestAnimationFrame(gameLoop);
-  };
-
-  animationId = requestAnimationFrame(gameLoop);
+    // 初始化游戏
+    game.reset();
+    
+    // 使用新的参数结构初始化英雄
+    game.initHeroes(
+        {
+            hero: gfyxAttr,
+            soldier: gfsbAttr,
+            soldierCount: 10
+        },
+        {
+            hero: sfyxAttr,
+            soldier: sfsbAttr,
+            soldierCount: 10
+        }
+    );
+    
+    game.start();
 };
 
 

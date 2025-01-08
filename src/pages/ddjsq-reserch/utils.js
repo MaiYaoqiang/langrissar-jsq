@@ -153,22 +153,26 @@ export class BattleLogger {
 
     _filterLogs(logs, filters = {}) {
         const {
-            name, // 按名称筛选，支持精确匹配
+            name, // 按名称筛选
+            nameMatchMode = 'exact', // 名称匹配模式: 'exact' | 'include'
             timeRange = [], // 时间范围：[startTime, endTime]
             excludeTypes = [], // 要排除的日志类型
             includeTypes = [], // 只包含的日志类型
         } = filters;
 
         return logs.filter(log => {
-            // 名称筛选（精确匹配）
+            // 名称筛选
             if (name) {
-                // 处理攻击者的日志
-                if (log.heroId === name) {
-                    // 直接匹配成功
-                } else if (log.heroId === `${name}-攻击`) {
-                    // 匹配攻击日志
-                } else {
-                    return false;
+                if (nameMatchMode === 'exact') {
+                    // 精确匹配模式
+                    if (log.heroId !== name && log.heroId !== `${name}-攻击`) {
+                        return false;
+                    }
+                } else if (nameMatchMode === 'include') {
+                    // 包含匹配模式
+                    if (!log.heroId.includes(name) && !log.heroId.includes(`${name}-攻击`)) {
+                        return false;
+                    }
                 }
             }
 
@@ -504,5 +508,163 @@ export class Hero extends BaseEntity {
         }
 
         return false;
+    }
+}
+
+// 添加游戏管理类
+export class Game {
+    constructor(options = {}) {
+        const {
+            realTime = true, // 是否使用真实时间
+            interval = 16, // 快速模式下的时间间隔(ms)
+            maxTime = 4000, // 最大游戏时长
+            onGameOver = null, // 游戏结束回调
+        } = options;
+
+        this.realTime = realTime;
+        this.interval = interval;
+        this.maxTime = maxTime;
+        this.onGameOver = onGameOver;
+        this.reset();
+    }
+
+    reset() {
+        this.globalTime = 0;
+        this.lastTime = null;
+        this.animationId = null;
+        this.heroList = [];
+        this.isRunning = false;
+    }
+
+    initHeroes(attackTeam, defendTeam) {
+        const {
+            hero: attackHero,
+            soldier: attackSoldier,
+            soldierCount: attackSoldierCount = 10
+        } = attackTeam;
+
+        const {
+            hero: defendHero,
+            soldier: defendSoldier,
+            soldierCount: defendSoldierCount = 10
+        } = defendTeam;
+
+        // 初始化攻方部队
+        const gf = [
+            ...Array.from({length: attackSoldierCount}).map((_, index) => {
+                const attr = {...attackSoldier};
+                attr.name = `攻方士兵${index + 1}`;
+                return new Hero(attr);
+            }),
+            new Hero(attackHero)
+        ];
+
+        // 初始化守方部队
+        const sf = [
+            ...Array.from({length: defendSoldierCount}).map((_, index) => {
+                const attr = {...defendSoldier};
+                attr.name = `守方士兵${index + 1}`;
+                return new Hero(attr);
+            }),
+            new Hero(defendHero)
+        ];
+
+        // 设置目标
+        gf.forEach(hero => hero.setTargets(sf));
+        sf.forEach(hero => hero.setTargets(gf));
+
+        this.heroList = [...gf, ...sf];
+    }
+
+    handleGameOver() {
+        if (this.realTime) {
+            cancelAnimationFrame(this.animationId);
+        }
+        this.isRunning = false;
+        this.onGameOver?.();
+    }
+
+    update(timestamp) {
+        if (!this.isRunning) return;
+
+        // 计算时间差
+        let deltaTime;
+        if (this.realTime) {
+            if (this.lastTime === null) {
+                this.lastTime = timestamp;
+                deltaTime = 0;
+            } else {
+                deltaTime = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+            }
+        } else {
+            deltaTime = this.interval;
+        }
+
+        this.globalTime = parseFloat((deltaTime + this.globalTime).toFixed());
+
+        // 更新所有单位
+        this.heroList.forEach(hero => hero.update(this.globalTime));
+
+        // 检查游戏是否需要强制结束
+        if (this.globalTime > this.maxTime) {
+            this.handleGameOver();
+            throw new Error(`游戏时长不可能超过${this.maxTime/1000}秒，直接结束`);
+        }
+
+        // 检查是否需要停止更新
+        if (!this.heroList.some(hero => hero.isNeedUpdate())) {
+            console.log("战斗结束: " + this.globalTime + "ms");
+            
+            const logger = BattleLogger.getInstance();
+            
+            // 精确匹配示例
+            logger.printBattleResult({
+                name: '攻方英雄',
+                nameMatchMode: 'exact',
+                timeRange: [0, this.globalTime],
+                includeTypes: ['stage','attack', 'kill']
+            });
+            
+            // 包含匹配示例
+            logger.printFilteredLogs({
+                name: '攻方英雄',
+                nameMatchMode: 'exact',
+                timeRange: [0, this.globalTime],
+                includeTypes: ['stage','attack', 'kill']
+            });
+
+            this.handleGameOver();
+            return;
+        }
+
+        // 继续下一帧
+        if (this.realTime) {
+            this.animationId = requestAnimationFrame(this.update.bind(this));
+        } else {
+            // 快速模式下直接执行下一次更新
+            this.update();
+        }
+    }
+
+    start() {
+        if (this.isRunning) return;
+        
+        this.isRunning = true;
+        console.log("战斗开始");
+
+        if (this.realTime) {
+            this.animationId = requestAnimationFrame(this.update.bind(this));
+        } else {
+            // 快速模式下直接开始更新
+            this.update();
+        }
+    }
+
+    stop() {
+        this.isRunning = false;
+        if (this.realTime) {
+            cancelAnimationFrame(this.animationId);
+        }
     }
 }
