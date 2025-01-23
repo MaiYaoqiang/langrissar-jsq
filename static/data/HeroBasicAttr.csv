@@ -1,5 +1,5 @@
-﻿英雄名,职业名,生命,攻击,智力,防御,魔防,技巧,铸纹生命,铸纹攻击,铸纹智力,铸纹防御,铸纹魔防,铸纹技巧,英雄头像
-自定义英雄,自定义,0,0,0,0,0,0,0,0,0,0,0,0,./image/自定义英雄头像.png
+string,string,int,int,int,int,int,int,int,int,int,int,int,int,string
+heroName,occupation,life,attack,intelligence,defense,magicDefense,skill,zwLife,zwAttack,zwIntelligence,zwDefense,zwMagicDefense,zwSkill,logo
 席尔娜,遂梦之誓,3968,256,601,246,375,99,1000,30,150,90,90,20,https://patchwiki.biligame.com/images/langrisser/thumb/9/93/hvct06k8kdu0c96q4rlhu8r4dl9hm3e.png/82px-%E5%A4%B4%E5%83%8F_%E5%B8%AD%E5%B0%94%E5%A8%9C.png
 席尔娜,梦之女王,4301,256,601,265,375,130,1000,30,150,90,90,20,https://patchwiki.biligame.com/images/langrisser/thumb/9/93/hvct06k8kdu0c96q4rlhu8r4dl9hm3e.png/82px-%E5%A4%B4%E5%83%8F_%E5%B8%AD%E5%B0%94%E5%A8%9C.png
 霞,断命之天神,4201,560,244,315,280,252,1000,150,30,90,90,20,https://patchwiki.biligame.com/images/langrisser/thumb/f/f9/tj8949qu9hp81wfs0a1f7drkz4jcloz.png/82px-%E5%A4%B4%E5%83%8F_%E9%9C%9E.png
