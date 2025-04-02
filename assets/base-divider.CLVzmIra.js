@@ -1,0 +1,1 @@
+import{o as e,h as r}from"./index-eyOEjFGU.js";import{_ as s}from"./_plugin-vue_export-helper.BCo6x5W8.js";const o=s({},[["render",function(s,o){return e(),r("div",{class:"base-divider"})}],["__scopeId","data-v-c653cf01"]]);export{o as B};
